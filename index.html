@@ -59,6 +59,7 @@ input:focus,button:focus-visible{outline:2px solid var(--brand);outline-offset:1
 .lock p{margin:0 0 14px;color:var(--muted);font-size:14px}
 .lock label.chk{display:flex;align-items:center;gap:8px;margin:12px 0 14px;font-size:15px;min-height:44px}
 .lock label.chk input{width:20px;height:20px}
+.lock form button{margin-top:12px}
 .lock .err{color:var(--err);font-size:14px;min-height:20px;margin-top:8px}
 .lock button{width:100%}
 /* danh sách */
@@ -69,11 +70,12 @@ input:focus,button:focus-visible{outline:2px solid var(--brand);outline-offset:1
 .bed.cang{background:var(--cang);color:var(--cang-ink)}
 .bed small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;opacity:.8}
 .bed b{display:block;font-size:20px}
+.bed .no{display:block;font-size:11.5px;margin-top:3px;padding-top:3px;border-top:1px solid currentColor;opacity:.75}
+.offline{color:var(--cang-ink)}
 .info{flex:1;min-width:0}
 .name{font-weight:700;font-size:16.5px}
 .age{color:var(--muted);font-weight:400;font-size:15px;white-space:nowrap}
 .dx{margin-top:3px;font-size:15px;overflow-wrap:anywhere}
-.stt{color:var(--muted);font-size:13px}
 .empty{color:var(--muted);text-align:center;padding:40px 0}
 footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
 .hidden{display:none!important}
@@ -85,10 +87,9 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
 
   <section id="lockView" class="lock hidden" aria-labelledby="lockTitle">
     <h2 id="lockTitle">Danh sách bệnh nhân</h2>
-    <p>Danh sách đã được mã hoá. Nhập mật khẩu để xem.</p>
+    <p>Danh sách đã được mã hoá. Nhập mật khẩu một lần, máy này sẽ nhớ để lần sau mở là xem được ngay.</p>
     <form id="lockForm" autocomplete="off">
       <input id="pw" type="password" placeholder="Mật khẩu" autocomplete="current-password" aria-label="Mật khẩu">
-      <label class="chk"><input id="remember" type="checkbox" checked> Ghi nhớ trên máy này</label>
       <button class="primary" type="submit">Mở danh sách</button>
       <div class="err" id="err" role="alert"></div>
     </form>
@@ -99,7 +100,6 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
       <div class="row">
         <h1>Danh sách bệnh nhân</h1>
         <button id="reload" type="button" aria-label="Tải lại">↻ Tải lại</button>
-        <button id="lockBtn" type="button" aria-label="Khoá">Khoá</button>
       </div>
       <div class="meta" id="meta"></div>
       <div class="search"><input id="q" type="search" placeholder="Tìm tên, giường, chẩn đoán…" aria-label="Tìm kiếm"></div>
@@ -114,7 +114,7 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
 <script>
 (function(){
   "use strict";
-  var KEY = "dsbn_pw";
+  var KEY = "dsbn_pw", CACHE = "dsbn_data";
   var $ = function(id){ return document.getElementById(id); };
   var enc = null, rows = [], payload = null;
 
@@ -125,11 +125,21 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
   function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   function norm(s){ return String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/g,"d"); }
 
+  var offline = false;
   async function fetchData(){
-    var r = await fetch("data.json?t=" + Date.now(), {cache:"no-store"});
-    if (r.status === 404) throw new Error("NODATA");
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    return r.json();
+    var r;
+    try { r = await fetch("data.json?t=" + Date.now(), {cache:"no-store"}); }
+    catch(e){ r = null; }
+    if (r && r.status === 404) throw new Error("NODATA");
+    if (r && r.ok){
+      var j = await r.json();
+      store(CACHE, JSON.stringify(j));      // lưu bản đã mã hoá để xem khi mất mạng
+      offline = false;
+      return j;
+    }
+    var c = load(CACHE);                     // mất mạng: dùng bản gần nhất (vẫn mã hoá)
+    if (c){ offline = true; return JSON.parse(c); }
+    throw new Error("NET");
   }
 
   async function decrypt(blob, pw){
@@ -142,12 +152,12 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
     return JSON.parse(new TextDecoder().decode(plain));
   }
 
-  function bedBadge(g){
+  function bedBadge(g, stt){
     var s = String(g).trim(), m = s.match(/\d+/), isCang = /^c[aá]ng/i.test(s);
     var label = isCang ? "Cáng" : (/^gi/i.test(s) ? "Giường" : "");
     var num = isCang ? s.replace(/^c[aá]ng\s*/i,"") : (m ? m[0] : s);
     if (!label) { label = ""; num = s; }
-    return '<div class="bed'+(isCang?' cang':'')+'"><small>'+esc(label)+'</small><b>'+esc(num)+'</b></div>';
+    return '<div class="bed'+(isCang?' cang':'')+'"><small>'+esc(label)+'</small><b>'+esc(num)+'</b><span class="no">STT '+esc(stt)+'</span></div>';
   }
 
   function render(){
@@ -155,34 +165,41 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
     var html = rows.filter(function(r){
       return !q || norm(r.join(" ")).indexOf(q) >= 0;
     }).map(function(r){
-      return '<li class="item">'+bedBadge(r[1])+'<div class="info">'+
+      return '<li class="item">'+bedBadge(r[1], r[0])+'<div class="info">'+
         '<div><span class="name">'+esc(r[2])+'</span> <span class="age">· '+esc(r[3])+' tuổi</span></div>'+
-        '<div class="dx">'+esc(r[4])+'</div>'+
-        '<div class="stt">STT '+esc(r[0])+' · '+esc(r[1])+'</div></div></li>';
+        '<div class="dx">'+esc(r[4])+'</div></div></li>';
     }).join("");
     $("list").innerHTML = html || '<li class="empty">Không có bệnh nhân phù hợp.</li>';
   }
 
   function showList(p){
     payload = p; rows = p.rows || [];
-    $("meta").textContent = "Cập nhật " + (p.updated || "?") + " · " + rows.length + " bệnh nhân";
+    $("meta").innerHTML = "Cập nhật " + esc(p.updated || "?") + " · " + rows.length + " bệnh nhân" +
+      (offline ? ' <span class="offline">· đang xem bản lưu (mất mạng)</span>' : "");
     render(); show("listView");
   }
 
   async function open(pw, silent){
     try{
       if (!enc) enc = await fetchData();
+    }catch(e){
+      show("lockView");
+      $("err").textContent = e.message === "NODATA" ? "Chưa có danh sách nào được đăng lên."
+        : "Không tải được dữ liệu, kiểm tra kết nối mạng rồi bấm Mở lại.";
+      if (silent && load(KEY)) $("pw").value = "";
+      return false;
+    }
+    try{
       var p = await decrypt(enc, pw);
-      if ($("remember").checked || silent) store(KEY, pw);
+      store(KEY, pw);
       $("err").textContent = "";
       showList(p);
       return true;
     }catch(e){
-      if (e.message === "NODATA"){ show("lockView"); $("err").textContent = "Chưa có danh sách nào được đăng lên."; return false; }
-      if (e.message && e.message.indexOf("HTTP") === 0){ show("lockView"); $("err").textContent = "Không tải được dữ liệu ("+e.message+"). Thử lại sau."; return false; }
-      if (silent){ store(KEY, null); }
+      // sai mật khẩu (hoặc bạn đã đổi mật khẩu trong phần mềm) -> hỏi lại
+      store(KEY, null);
       show("lockView");
-      $("err").textContent = silent ? "" : "Sai mật khẩu.";
+      $("err").textContent = silent ? "Mật khẩu đã thay đổi, hãy nhập mật khẩu mới." : "Sai mật khẩu.";
       return false;
     }
   }
@@ -197,20 +214,18 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
 
   $("lockForm").addEventListener("submit", function(ev){
     ev.preventDefault();
-    var pw = $("pw").value;
+    var pw = $("pw").value || load(KEY);
     if (!pw) return;
     $("err").textContent = "Đang mở…";
-    open(pw, false).then(function(ok){ if(ok){ $("pw").value=""; if(!$("remember").checked) store(KEY,null); } });
+    open(pw, false).then(function(ok){ if(ok) $("pw").value=""; });
   });
   $("q").addEventListener("input", render);
   $("reload").addEventListener("click", refresh);
-  $("lockBtn").addEventListener("click", function(){
-    store(KEY, null); rows = []; payload = null; $("list").innerHTML = ""; $("q").value = ""; show("lockView");
-  });
   document.addEventListener("visibilitychange", function(){
     if (document.visibilityState === "visible" && payload) refresh();
   });
 
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
   if (!window.crypto || !crypto.subtle){
     show("lockView"); $("err").textContent = "Trình duyệt không hỗ trợ giải mã. Hãy mở bằng Safari/Chrome bản mới.";
   } else {
