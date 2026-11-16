@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -26,7 +26,7 @@
   }
 }
 *{box-sizing:border-box}
-html,body{margin:0;touch-action:pan-y;-webkit-text-size-adjust:100%}
+html,body{margin:0}
 body{
   background:var(--bg); color:var(--ink);
   font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -35,6 +35,7 @@ body{
 }
 .wrap{max-width:720px;margin:0 auto;padding:0 16px 32px}
 header{
+  position:sticky;top:0;z-index:5;background:var(--bg);
   padding:14px 0 10px;border-bottom:1px solid var(--line);
 }
 .row{display:flex;align-items:center;gap:8px}
@@ -50,6 +51,7 @@ input[type=password],input[type=search],input[type=text]{
   border:1px solid var(--line);background:var(--card);color:var(--ink);
 }
 input:focus,button:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.search{margin-top:10px}
 /* khoá */
 .lock{max-width:380px;margin:12vh auto 0;background:var(--card);border:1px solid var(--line);
   border-radius:16px;padding:22px 18px}
@@ -57,7 +59,6 @@ input:focus,button:focus-visible{outline:2px solid var(--brand);outline-offset:1
 .lock p{margin:0 0 14px;color:var(--muted);font-size:14px}
 .lock label.chk{display:flex;align-items:center;gap:8px;margin:12px 0 14px;font-size:15px;min-height:44px}
 .lock label.chk input{width:20px;height:20px}
-.lock form button{margin-top:12px}
 .lock .err{color:var(--err);font-size:14px;min-height:20px;margin-top:8px}
 .lock button{width:100%}
 /* danh sách */
@@ -68,20 +69,11 @@ input:focus,button:focus-visible{outline:2px solid var(--brand);outline-offset:1
 .bed.cang{background:var(--cang);color:var(--cang-ink)}
 .bed small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;opacity:.8}
 .bed b{display:block;font-size:20px}
-.bed .no{display:block;font-size:11.5px;margin-top:3px;padding-top:3px;border-top:1px solid currentColor;opacity:.75}
-.offline{color:var(--cang-ink)}
 .info{flex:1;min-width:0}
 .name{font-weight:700;font-size:16.5px}
 .age{color:var(--muted);font-weight:400;font-size:15px;white-space:nowrap}
 .dx{margin-top:3px;font-size:15px;overflow-wrap:anywhere}
-.item{flex-wrap:wrap;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer}
-.note{flex-basis:100%;margin-top:2px}
-.note-view{background:var(--cang);color:var(--cang-ink);border-radius:8px;padding:8px 10px;font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
-.note textarea{font:inherit;font-size:16px;width:100%;min-height:84px;padding:8px 10px;border-radius:8px;
-  border:1px solid var(--brand);background:var(--card);color:var(--ink);resize:vertical;-webkit-user-select:text;user-select:text}
-.note .tools{display:flex;justify-content:space-between;align-items:center;margin-top:6px;color:var(--muted);font-size:13px}
-.note .tools button{min-height:40px}
-.hint{color:var(--muted);font-size:13px;margin-top:4px}
+.stt{color:var(--muted);font-size:13px}
 .empty{color:var(--muted);text-align:center;padding:40px 0}
 footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
 .hidden{display:none!important}
@@ -93,9 +85,10 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
 
   <section id="lockView" class="lock hidden" aria-labelledby="lockTitle">
     <h2 id="lockTitle">Danh sách bệnh nhân</h2>
-    <p>Danh sách đã được mã hoá. Nhập mật khẩu một lần, máy này sẽ nhớ để lần sau mở là xem được ngay.</p>
+    <p>Danh sách đã được mã hoá. Nhập mật khẩu để xem.</p>
     <form id="lockForm" autocomplete="off">
       <input id="pw" type="password" placeholder="Mật khẩu" autocomplete="current-password" aria-label="Mật khẩu">
+      <label class="chk"><input id="remember" type="checkbox" checked> Ghi nhớ trên máy này</label>
       <button class="primary" type="submit">Mở danh sách</button>
       <div class="err" id="err" role="alert"></div>
     </form>
@@ -106,9 +99,10 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
       <div class="row">
         <h1>Danh sách bệnh nhân</h1>
         <button id="reload" type="button" aria-label="Tải lại">↻ Tải lại</button>
+        <button id="lockBtn" type="button" aria-label="Khoá">Khoá</button>
       </div>
       <div class="meta" id="meta"></div>
-      <div class="hint">Chạm 2 lần vào một bệnh nhân để viết ghi chú.</div>
+      <div class="search"><input id="q" type="search" placeholder="Tìm tên, giường, chẩn đoán…" aria-label="Tìm kiếm"></div>
     </header>
     <ul class="list" id="list"></ul>
     <footer>Dữ liệu được mã hoá, chỉ người có mật khẩu mới đọc được.</footer>
@@ -120,7 +114,7 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
 <script>
 (function(){
   "use strict";
-  var KEY = "dsbn_pw", CACHE = "dsbn_data", NOTES = "dsbn_notes";
+  var KEY = "dsbn_pw";
   var $ = function(id){ return document.getElementById(id); };
   var enc = null, rows = [], payload = null;
 
@@ -129,22 +123,13 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
   function b64(s){ var bin = atob(s), u = new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
   function show(id){ ["lockView","listView","loading"].forEach(function(x){ $(x).classList.toggle("hidden", x!==id); }); }
   function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function norm(s){ return String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/g,"d"); }
 
-  var offline = false;
   async function fetchData(){
-    var r;
-    try { r = await fetch("data.json?t=" + Date.now(), {cache:"no-store"}); }
-    catch(e){ r = null; }
-    if (r && r.status === 404) throw new Error("NODATA");
-    if (r && r.ok){
-      var j = await r.json();
-      store(CACHE, JSON.stringify(j));      // lưu bản đã mã hoá để xem khi mất mạng
-      offline = false;
-      return j;
-    }
-    var c = load(CACHE);                     // mất mạng: dùng bản gần nhất (vẫn mã hoá)
-    if (c){ offline = true; return JSON.parse(c); }
-    throw new Error("NET");
+    var r = await fetch("data.json?t=" + Date.now(), {cache:"no-store"});
+    if (r.status === 404) throw new Error("NODATA");
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
   }
 
   async function decrypt(blob, pw){
@@ -157,79 +142,47 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
     return JSON.parse(new TextDecoder().decode(plain));
   }
 
-  function bedBadge(g, stt){
+  function bedBadge(g){
     var s = String(g).trim(), m = s.match(/\d+/), isCang = /^c[aá]ng/i.test(s);
     var label = isCang ? "Cáng" : (/^gi/i.test(s) ? "Giường" : "");
     var num = isCang ? s.replace(/^c[aá]ng\s*/i,"") : (m ? m[0] : s);
     if (!label) { label = ""; num = s; }
-    return '<div class="bed'+(isCang?' cang':'')+'"><small>'+esc(label)+'</small><b>'+esc(num)+'</b><span class="no">STT '+esc(stt)+'</span></div>';
+    return '<div class="bed'+(isCang?' cang':'')+'"><small>'+esc(label)+'</small><b>'+esc(num)+'</b></div>';
   }
 
   function render(){
-    var html = rows.map(function(r){
-      var k = noteKey(r), n = notes[k] || "";
-      var noteHtml = editing === k
-        ? '<div class="note"><textarea data-k="'+esc(k)+'" placeholder="Ghi chú cho bệnh nhân này…">'+esc(n)+'</textarea>'+
-          '<div class="tools"><span>Tự lưu trên máy này</span><button type="button" class="done">Xong</button></div></div>'
-        : (n ? '<div class="note"><div class="note-view">'+esc(n)+'</div></div>' : '');
-      return '<li class="item" data-k="'+esc(k)+'">'+bedBadge(r[1], r[0])+'<div class="info">'+
+    var q = norm($("q").value.trim());
+    var html = rows.filter(function(r){
+      return !q || norm(r.join(" ")).indexOf(q) >= 0;
+    }).map(function(r){
+      return '<li class="item">'+bedBadge(r[1])+'<div class="info">'+
         '<div><span class="name">'+esc(r[2])+'</span> <span class="age">· '+esc(r[3])+' tuổi</span></div>'+
-        '<div class="dx">'+esc(r[4])+'</div></div>'+noteHtml+'</li>';
+        '<div class="dx">'+esc(r[4])+'</div>'+
+        '<div class="stt">STT '+esc(r[0])+' · '+esc(r[1])+'</div></div></li>';
     }).join("");
-    $("list").innerHTML = html || '<li class="empty">Danh sách trống.</li>';
-    var ta = $("list").querySelector("textarea");
-    if (ta){ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+    $("list").innerHTML = html || '<li class="empty">Không có bệnh nhân phù hợp.</li>';
   }
-
-  /* ---- ghi chú: lưu trên máy, gắn theo họ tên + tuổi ---- */
-  var notes = {}, editing = null, lastTap = {k:null, t:0};
-  try { notes = JSON.parse(load(NOTES) || "{}") || {}; } catch(e){ notes = {}; }
-  function noteKey(r){ return String(r[2]).trim().toUpperCase() + "|" + String(r[3]).trim(); }
-  function saveNotes(){ store(NOTES, JSON.stringify(notes)); }
-  function toggleNote(k){ editing = (editing === k) ? null : k; render(); }
-  $("list").addEventListener("click", function(ev){
-    if (ev.target.closest("textarea")) return;
-    if (ev.target.closest(".done")){ editing = null; render(); return; }
-    var li = ev.target.closest(".item"); if (!li) return;
-    var k = li.getAttribute("data-k"), now = Date.now();
-    if (lastTap.k === k && now - lastTap.t < 400){ lastTap = {k:null, t:0}; toggleNote(k); }
-    else lastTap = {k:k, t:now};
-  });
-  $("list").addEventListener("input", function(ev){
-    var ta = ev.target.closest("textarea"); if (!ta) return;
-    var k = ta.getAttribute("data-k"), v = ta.value;
-    if (v.trim()) notes[k] = v; else delete notes[k];
-    saveNotes();
-  });
 
   function showList(p){
     payload = p; rows = p.rows || [];
-    $("meta").innerHTML = "Cập nhật " + esc(p.updated || "?") + " · " + rows.length + " bệnh nhân" +
-      (offline ? ' <span class="offline">· đang xem bản lưu (mất mạng)</span>' : "");
+    $("meta").textContent = "Cập nhật " + (p.updated || "?") + " · " + rows.length + " bệnh nhân";
     render(); show("listView");
   }
 
   async function open(pw, silent){
     try{
       if (!enc) enc = await fetchData();
-    }catch(e){
-      show("lockView");
-      $("err").textContent = e.message === "NODATA" ? "Chưa có danh sách nào được đăng lên."
-        : "Không tải được dữ liệu, kiểm tra kết nối mạng rồi bấm Mở lại.";
-      if (silent && load(KEY)) $("pw").value = "";
-      return false;
-    }
-    try{
       var p = await decrypt(enc, pw);
-      store(KEY, pw);
+      if ($("remember").checked || silent) store(KEY, pw);
       $("err").textContent = "";
       showList(p);
       return true;
     }catch(e){
-      // sai mật khẩu (hoặc bạn đã đổi mật khẩu trong phần mềm) -> hỏi lại
-      store(KEY, null);
+      if (e.message === "NODATA"){ show("lockView"); $("err").textContent = "Chưa có danh sách nào được đăng lên."; return false; }
+      if (e.message && e.message.indexOf("HTTP") === 0){ show("lockView"); $("err").textContent = "Không tải được dữ liệu ("+e.message+"). Thử lại sau."; return false; }
+      if (silent){ store(KEY, null); }
       show("lockView");
-      $("err").textContent = silent ? "Mật khẩu đã thay đổi, hãy nhập mật khẩu mới." : "Sai mật khẩu.";
+      $("err").textContent = silent ? "" : "Sai mật khẩu.";
       return false;
     }
   }
@@ -244,19 +197,20 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
 
   $("lockForm").addEventListener("submit", function(ev){
     ev.preventDefault();
-    var pw = $("pw").value || load(KEY);
+    var pw = $("pw").value;
     if (!pw) return;
     $("err").textContent = "Đang mở…";
-    open(pw, false).then(function(ok){ if(ok) $("pw").value=""; });
+    open(pw, false).then(function(ok){ if(ok){ $("pw").value=""; if(!$("remember").checked) store(KEY,null); } });
   });
+  $("q").addEventListener("input", render);
   $("reload").addEventListener("click", refresh);
+  $("lockBtn").addEventListener("click", function(){
+    store(KEY, null); rows = []; payload = null; $("list").innerHTML = ""; $("q").value = ""; show("lockView");
+  });
   document.addEventListener("visibilitychange", function(){
-    if (document.visibilityState === "visible" && payload && !editing) refresh();
+    if (document.visibilityState === "visible" && payload) refresh();
   });
 
-  document.addEventListener("gesturestart", function(e){ e.preventDefault(); }, {passive:false});
-  document.addEventListener("touchmove", function(e){ if (e.touches && e.touches.length > 1) e.preventDefault(); }, {passive:false});
-  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
   if (!window.crypto || !crypto.subtle){
     show("lockView"); $("err").textContent = "Trình duyệt không hỗ trợ giải mã. Hãy mở bằng Safari/Chrome bản mới.";
   } else {
